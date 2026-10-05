@@ -73,22 +73,22 @@ export function AppNav() {
     <>
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-40 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-        <div className="flex h-16 items-center justify-between px-4 lg:px-6">
+        <div className="mx-auto flex h-16 w-full max-w-[1800px] items-center gap-3 px-4 lg:px-6">
           {/* Left: Logo + Name */}
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/20">
                 <Store className="w-5 h-5 text-white" />
               </div>
-              <div className="hidden sm:block">
-                <span className="text-lg font-bold tracking-tight">Al-Noor Mart</span>
-                <p className="text-[10px] text-muted-foreground -mt-0.5">POS & Inventory System</p>
+              <div className="hidden min-w-0 sm:block">
+                <span className="block whitespace-nowrap text-lg font-bold tracking-tight">AL-NOOR STORE</span>
+                <p className="whitespace-nowrap text-[10px] text-muted-foreground -mt-0.5">POS & Inventory System</p>
               </div>
             </div>
           </div>
 
           {/* Center: Desktop Nav */}
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden min-w-0 flex-1 items-center justify-start gap-0.5 overflow-x-auto lg:flex">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = pathname === item.href;
@@ -97,7 +97,7 @@ export function AppNav() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors relative group',
+                    'relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-2 text-sm font-medium transition-colors group',
                     active
                       ? 'text-primary'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -118,7 +118,7 @@ export function AppNav() {
           </nav>
 
           {/* Right: User Controls */}
-          <div className="flex items-center gap-2">
+          <div className="relative z-10 flex min-w-0 items-center justify-end gap-2 bg-card/95">
             {/* Theme Toggle */}
             <Button
               variant="ghost"

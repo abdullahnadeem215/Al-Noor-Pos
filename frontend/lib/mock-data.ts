@@ -60,12 +60,12 @@ export const mockProducts: Product[] = [
 
 // ===================== CUSTOMERS =====================
 export const mockCustomers: Customer[] = [
-  { id: 1, name: 'Rasheed Ahmed Khan', phone: '0301-2345678', address: 'House 12, Block C, Gulshan-e-Iqbal, Karachi', credit_limit: 50000, outstanding_balance: 18500, created_at: '2026-09-01' },
-  { id: 2, name: 'Fatima Bibi', phone: '0321-9876543', address: 'Shop 5, Tariq Road, PECHS, Karachi', credit_limit: 30000, outstanding_balance: 7500, created_at: '2026-09-05' },
-  { id: 3, name: 'Mohammad Imran', phone: '0333-1234567', address: 'Flat 3B, Falaknaz Plaza, Shah Faisal Colony', credit_limit: 25000, outstanding_balance: 0, created_at: '2026-09-10' },
-  { id: 4, name: 'Abdul Qadir Kiryana Store', phone: '0345-5555666', address: 'Shop 22, Empress Market, Saddar, Karachi', credit_limit: 100000, outstanding_balance: 42000, created_at: '2026-08-15' },
-  { id: 5, name: 'Zainab Khatoon', phone: '0300-7777888', address: 'House 45, Block A, North Nazimabad, Karachi', credit_limit: 20000, outstanding_balance: 3200, created_at: '2026-09-15' },
-  { id: 6, name: 'Haji Iqbal Wholesale', phone: '0312-1111222', address: 'Shop 101, Jodia Bazaar, Karachi', credit_limit: 200000, outstanding_balance: 0, created_at: '2026-07-20' },
+  { id: 1, name: 'Rasheed Ahmed Khan', phone: '0301-2345678', address: 'House 12, Street #4, Yousafabad, Faisalabad', credit_limit: 50000, outstanding_balance: 18500, created_at: '2026-09-01' },
+  { id: 2, name: 'Fatima Bibi', phone: '0321-9876543', address: 'Shop 5, Samanabad, Faisalabad', credit_limit: 30000, outstanding_balance: 7500, created_at: '2026-09-05' },
+  { id: 3, name: 'Mohammad Imran', phone: '0333-1234567', address: 'Plot 3B, Satiana Road, Faisalabad', credit_limit: 25000, outstanding_balance: 0, created_at: '2026-09-10' },
+  { id: 4, name: 'Abdul Qadir Kiryana Store', phone: '0345-5555666', address: 'Shop 22, Clock Tower Bazaar, Faisalabad', credit_limit: 100000, outstanding_balance: 42000, created_at: '2026-08-15' },
+  { id: 5, name: 'Zainab Khatoon', phone: '0300-7777888', address: 'House 45, D-Ground, Faisalabad', credit_limit: 20000, outstanding_balance: 3200, created_at: '2026-09-15' },
+  { id: 6, name: 'Haji Iqbal Wholesale', phone: '0312-1111222', address: 'Shop 101, Anarkali Bazaar, Faisalabad', credit_limit: 200000, outstanding_balance: 0, created_at: '2026-07-20' },
 ];
 
 // ===================== LEDGER ENTRIES =====================

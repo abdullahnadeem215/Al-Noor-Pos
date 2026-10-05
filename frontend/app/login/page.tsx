@@ -73,7 +73,7 @@ export default function LoginPage() {
           >
             <Store className="w-10 h-10 text-white" />
           </motion.div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Al-Noor Mart</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">AL-NOOR STORE</h1>
           <p className="text-sm text-muted-foreground mt-1">Retail & Wholesale Grocery Management</p>
         </div>
 
@@ -162,7 +162,7 @@ export default function LoginPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Al-Noor Mart POS &copy; 2026 · Powered by Laravel API
+          AL-NOOR STORE POS &copy; 2026 · Powered by Laravel API
         </p>
       </motion.div>
     </div>

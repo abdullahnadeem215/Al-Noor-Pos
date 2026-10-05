@@ -9,8 +9,8 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Al-Noor Mart POS',
-  description: 'Point of Sale, Inventory, Khata & Reporting for Al-Noor Mart',
+  title: 'AL-NOOR STORE POS',
+  description: 'Point of Sale, Inventory, Khata & Reporting for AL-NOOR STORE',
 };
 
 export default function RootLayout({

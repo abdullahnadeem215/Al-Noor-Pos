@@ -182,9 +182,17 @@ export interface DailyClosingPayload {
 // ===================== DASHBOARD & REPORTS =====================
 export interface DashboardData {
   today_sales: number;
+  today_bills?: number;
   today_transaction_count: number;
+  cash_today?: number;
+  credit_today?: number;
+  online_today?: number;
+  returns_today?: number;
+  average_bill_value?: number;
   today_expenses: number;
   total_outstanding_debt: number;
+  outstanding_credit?: number;
+  low_stock_count?: number;
   low_stock_products: Product[];
   top_selling_products: TopProduct[];
 }

@@ -8,10 +8,6 @@ import {
   AlertCircle,
   Calculator,
   RefreshCw,
-  DollarSign,
-  Receipt,
-  RotateCcw,
-  ArrowRight,
   ShieldCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -38,7 +34,7 @@ export default function DailyClosingPage() {
       setLoading(true);
       const data = await fetchDailyClosingPreview();
       setPreview(data);
-    } catch (err: any) {
+    } catch {
       toast.error('Failed to load register shift preview');
     } finally {
       setLoading(false);
@@ -62,8 +58,12 @@ export default function DailyClosingPage() {
 
     try {
       setSubmitting(true);
+      const todayStr = preview?.date || new Date().toISOString().split('T')[0];
       await submitDailyClosing({
-        actual_cash: actualCashVal,
+        date: todayStr,
+        counted_cash: actualCashVal,
+        expected_cash: expectedCashVal,
+        variance,
         notes: notes.trim() || undefined,
       });
       setClosed(true);
@@ -96,7 +96,7 @@ export default function DailyClosingPage() {
           <div>
             <h1 className="text-2xl font-bold">Shift Closed & Reconciled</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Shift date: {preview ? formatDate(preview.closing_date) : 'Today'}
+              Shift date: {preview ? formatDate(preview.date) : 'Today'}
             </p>
           </div>
           <div className="p-4 rounded-lg bg-card border text-left space-y-2 max-w-md mx-auto">
@@ -154,23 +154,23 @@ export default function DailyClosingPage() {
             <div className="space-y-2.5 text-sm">
               <div className="flex justify-between items-center p-2.5 rounded-lg bg-muted/40">
                 <span className="text-muted-foreground">Opening Cash Float</span>
-                <span className="font-semibold">Rs. {formatPKR(preview?.opening_cash || 0)}</span>
+                <span className="font-semibold">Rs. {formatPKR(preview?.opening_float || 0)}</span>
               </div>
               <div className="flex justify-between items-center p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400">
                 <span>(+) Cash Sales</span>
-                <span className="font-bold">Rs. {formatPKR(preview?.cash_sales_amount || 0)}</span>
+                <span className="font-bold">Rs. {formatPKR(preview?.total_cash_sales || 0)}</span>
               </div>
               <div className="flex justify-between items-center p-2.5 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-700 dark:text-teal-400">
                 <span>(+) Customer Debt Cash Payments</span>
-                <span className="font-bold">Rs. {formatPKR(preview?.total_customer_payments || 0)}</span>
+                <span className="font-bold">Rs. {formatPKR(preview?.customer_debt_payments_cash || 0)}</span>
               </div>
               <div className="flex justify-between items-center p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400">
                 <span>(-) Cash Expenses</span>
-                <span className="font-bold">Rs. {formatPKR(preview?.total_expenses || 0)}</span>
+                <span className="font-bold">Rs. {formatPKR(preview?.cash_expenses || 0)}</span>
               </div>
               <div className="flex justify-between items-center p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400">
                 <span>(-) Cash Refunds</span>
-                <span className="font-bold">Rs. {formatPKR(preview?.total_refunds || 0)}</span>
+                <span className="font-bold">Rs. {formatPKR(preview?.cash_refunds || 0)}</span>
               </div>
             </div>
 

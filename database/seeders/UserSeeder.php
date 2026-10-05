@@ -15,7 +15,7 @@ class UserSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'owner@alnoormart.com'],
             [
-                'name' => 'Al-Noor Owner',
+                'name' => 'Store Owner',
                 'password' => Hash::make('password123'),
                 'role' => UserRole::OWNER,
                 'status' => 'active',

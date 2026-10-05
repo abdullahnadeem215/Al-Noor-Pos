@@ -1,0 +1,35 @@
+services:
+  # 1. Laravel 11 Backend API Service
+  - type: web
+    name: al-noor-mart-api
+    env: docker
+    plan: free
+    region: singapore
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: APP_NAME
+        value: "Al-Noor Mart POS"
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_URL
+        sync: false
+      - key: APP_KEY
+        generateValue: true
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DATABASE_URL
+        fromDatabase:
+          name: al-noor-postgres
+          property: connectionString
+      - key: FRONTEND_URL
+        sync: false
+
+databases:
+  # 2. Managed PostgreSQL 18 Database Service
+  - name: al-noor-postgres
+    plan: free
+    region: singapore
+    databaseName: al_noor_grocery
+    user: postgres
