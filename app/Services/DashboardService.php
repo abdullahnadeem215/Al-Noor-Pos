@@ -17,90 +17,56 @@ class DashboardService
     {
         $today = now()->toDateString();
 
-        // Today's finalized sales query
+        // Today's Credit Sales (due_amount from sales created today)
+        $todayCreditSales = round((float) (
+            Sale::whereDate('created_at', $today)
+                ->where('sale_status', '!=', 'cancelled')
+                ->sum('due_amount') ?? 0.0
+        ), 2);
+
+        // Payments Received Today (from credit_ledgers transaction_type=credit today OR sale_payments)
+        $paymentsReceivedToday = round((float) (
+            \App\Models\CreditLedger::where('transaction_type', \App\Enums\LedgerType::CREDIT)
+                ->whereDate('created_at', $today)
+                ->sum('amount') ?? 0.0
+        ), 2);
+
+        // Total Outstanding Khaata (sum of positive customer current_balances)
+        $totalOutstandingKhaata = round((float) (Customer::where('current_balance', '>', 0)->sum('current_balance') ?? 0.0), 2);
+
+        // Total Active Customers
+        $totalCustomers = Customer::where('status', 'active')->count();
+
+        // Total Active Products
+        $totalProducts = Product::where('status', 'active')->count();
+
+        // Today's total sales
         $todaySalesQuery = Sale::whereDate('created_at', $today)->where('sale_status', '!=', 'cancelled');
         $grossTodaySales = round((float) ($todaySalesQuery->sum('total') ?? 0.0), 2);
-        $todayBills = $todaySalesQuery->count();
 
-        // Today's returns
-        $todayReturns = round((float) (SalesReturn::whereDate('created_at', $today)->sum('total_refund_amount') ?? 0.0), 2);
-        $netTodaySales = round(max(0, $grossTodaySales - $todayReturns), 2);
+        // Recent Khaata Transactions
+        $recentTransactions = Sale::with(['customer', 'cashier'])
+            ->latest('id')
+            ->take(10)
+            ->get();
 
-        // Average Bill Value
-        $averageBillValue = $todayBills > 0 ? round($netTodaySales / $todayBills, 2) : 0.0;
-
-        // Cash collected today from sale_payments
-        $cashCollectedToday = round((float) (
-            SalePayment::whereHas('sale', function ($q) use ($today) {
-                $q->whereDate('created_at', $today)->where('sale_status', '!=', 'cancelled');
-            })->where('payment_method', 'cash')->sum('amount') ?? 0.0
-        ), 2);
-
-        // Credit (Udhaar) issued today
-        $creditIssuedToday = round((float) (
-            SalePayment::whereHas('sale', function ($q) use ($today) {
-                $q->whereDate('created_at', $today)->where('sale_status', '!=', 'cancelled');
-            })->where('payment_method', 'credit')->sum('amount') ?? 0.0
-        ), 2);
-
-        // Online payments today
-        $onlineCollectedToday = round((float) (
-            SalePayment::whereHas('sale', function ($q) use ($today) {
-                $q->whereDate('created_at', $today)->where('sale_status', '!=', 'cancelled');
-            })->where('payment_method', 'online')->sum('amount') ?? 0.0
-        ), 2);
-
-        // Expenses & Outstanding Credit
-        $todayExpensesAmount = round((float) (Expense::whereDate('expense_date', $today)->sum('amount') ?? 0.0), 2);
-        $outstandingCredit = round((float) (Customer::where('current_balance', '>', 0)->sum('current_balance') ?? 0.0), 2);
-
-        // Low stock products query & count
-        $lowStockQuery = Product::where('status', 'active')->whereRaw('current_stock <= minimum_stock');
-        $lowStockCount = $lowStockQuery->count();
-        $lowStockProducts = $lowStockQuery->take(10)->get([
-            'id', 'name', 'sku', 'selling_mode', 'current_stock', 'minimum_stock', 'base_unit'
-        ]);
-
-        // Top selling products query from finalized sale_items
-        $topSellingProducts = SaleItem::whereHas('sale', function ($q) use ($today) {
-                $q->whereDate('created_at', $today)->where('sale_status', '!=', 'cancelled');
-            })
-            ->join('products', 'sale_items.product_id', '=', 'products.id')
-            ->select(
-                'sale_items.product_id',
-                'sale_items.product_name_snapshot as name',
-                'products.sku',
-                'products.selling_mode',
-                'products.base_unit'
-            )
-            ->selectRaw('SUM(CASE WHEN sale_items.selling_mode = \'weight\' THEN sale_items.weight_grams / 1000 ELSE sale_items.quantity END) as quantity_sold')
-            ->selectRaw('SUM(sale_items.total) as revenue')
-            ->groupBy('sale_items.product_id', 'sale_items.product_name_snapshot', 'products.sku', 'products.selling_mode', 'products.base_unit')
-            ->orderByDesc('revenue')
-            ->take(5)
+        // Recent Payments
+        $recentPayments = \App\Models\CreditLedger::where('transaction_type', \App\Enums\LedgerType::CREDIT)
+            ->with(['customer', 'creator'])
+            ->latest('id')
+            ->take(10)
             ->get();
 
         return [
-            'today_sales' => $netTodaySales,
-            'today_bills' => $todayBills,
-            'today_transactions' => $todayBills,
-            'cash_today' => $cashCollectedToday,
-            'credit_today' => $creditIssuedToday,
-            'online_today' => $onlineCollectedToday,
-            'returns_today' => $todayReturns,
-            'average_bill_value' => $averageBillValue,
-            'today_expenses' => $todayExpensesAmount,
-            'outstanding_credit' => $outstandingCredit,
-            'low_stock_count' => $lowStockCount,
-            'low_stock_products' => $lowStockProducts,
-            'top_selling_products' => $topSellingProducts,
-            'sales_breakdown' => [
-                'cash' => $cashCollectedToday,
-                'credit' => $creditIssuedToday,
-                'online' => $onlineCollectedToday,
-                'returns' => $todayReturns,
-                'net_sales' => $netTodaySales,
-            ],
+            'today_credit_sales' => $todayCreditSales,
+            'payments_received_today' => $paymentsReceivedToday,
+            'total_outstanding_khaata' => $totalOutstandingKhaata,
+            'total_customers' => $totalCustomers,
+            'total_products' => $totalProducts,
+            'today_sales' => $grossTodaySales,
+            'recent_transactions' => $recentTransactions,
+            'recent_payments' => $recentPayments,
+            'outstanding_credit' => $totalOutstandingKhaata,
         ];
     }
 }

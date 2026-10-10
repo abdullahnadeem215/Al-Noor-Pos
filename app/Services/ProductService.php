@@ -45,7 +45,7 @@ class ProductService
             $query->where('status', 'active');
         }
 
-        $perPage = (int) ($filters['per_page'] ?? 20);
+        $perPage = (int) ($filters['per_page'] ?? 50);
 
         return $query->orderBy('name')->paginate($perPage);
     }
@@ -68,24 +68,30 @@ class ProductService
                     $openingGrams = (float) $data['opening_stock_grams'];
                 } elseif (isset($data['opening_stock_kg'])) {
                     $openingGrams = $this->weightService->normalizeToGrams($data['opening_stock_kg'], 'kg');
-                } elseif (isset($data['opening_stock'])) {
-                    $openingGrams = (float) $data['opening_stock'];
+                } elseif (isset($data['current_stock']) && (float) $data['current_stock'] > 0) {
+                    $val = (float) $data['current_stock'];
+                    $openingGrams = $val >= 1000 ? $val : $val * 1000;
+                } elseif (isset($data['opening_stock']) && (float) $data['opening_stock'] > 0) {
+                    $val = (float) $data['opening_stock'];
+                    $openingGrams = $val >= 1000 ? $val : $val * 1000;
                 }
                 $data['current_stock'] = $openingGrams;
-                $data['minimum_stock'] = isset($data['minimum_stock'])
-                    ? (float) $data['minimum_stock']
-                    : 1000.0; // 1 kg default
+
+                $minVal = isset($data['minimum_stock']) ? (float) $data['minimum_stock'] : 1.0;
+                $data['minimum_stock'] = $minVal >= 1000 ? $minVal : $minVal * 1000;
             } else {
                 $data['stock_unit'] = $data['stock_unit'] ?? 'piece';
                 $data['base_unit'] = $data['base_unit'] ?? 'piece';
-                $data['current_stock'] = isset($data['opening_stock']) ? (float) $data['opening_stock'] : 0.0;
+                $stockVal = isset($data['current_stock'])
+                    ? (float) $data['current_stock']
+                    : (isset($data['opening_stock']) ? (float) $data['opening_stock'] : 0.0);
+                $data['current_stock'] = $stockVal;
                 $data['minimum_stock'] = isset($data['minimum_stock']) ? (float) $data['minimum_stock'] : 5.0;
             }
 
             unset($data['opening_stock_grams'], $data['opening_stock_kg'], $data['opening_stock']);
 
             $product = Product::create($data);
-
 
             // Create initial inventory movement if opening stock > 0
             if ($product->current_stock > 0) {
@@ -112,6 +118,28 @@ class ProductService
             $oldBasePrice = (float) ($product->base_price ?? 0.00);
             $oldPurchasePrice = (float) ($product->purchase_price ?? 0.00);
 
+            $mode = isset($data['selling_mode']) ? SellingMode::from($data['selling_mode']) : $product->selling_mode;
+
+            if ($mode === SellingMode::WEIGHT) {
+                if (isset($data['current_stock'])) {
+                    $val = (float) $data['current_stock'];
+                    $data['current_stock'] = $val >= 1000 ? $val : $val * 1000;
+                } elseif (isset($data['opening_stock'])) {
+                    $val = (float) $data['opening_stock'];
+                    $data['current_stock'] = $val >= 1000 ? $val : $val * 1000;
+                }
+                if (isset($data['minimum_stock'])) {
+                    $minVal = (float) $data['minimum_stock'];
+                    $data['minimum_stock'] = $minVal >= 1000 ? $minVal : $minVal * 1000;
+                }
+            } else {
+                if (isset($data['opening_stock']) && !isset($data['current_stock'])) {
+                    $data['current_stock'] = (float) $data['opening_stock'];
+                }
+            }
+
+            unset($data['opening_stock_grams'], $data['opening_stock_kg'], $data['opening_stock']);
+
             $product->update($data);
 
             // Log price changes if prices were modified
@@ -133,7 +161,6 @@ class ProductService
             return $product->fresh();
         });
     }
-
 
     public function deleteProduct(Product $product): bool
     {

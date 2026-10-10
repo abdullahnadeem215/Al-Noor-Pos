@@ -49,10 +49,10 @@ export default function LoginPage() {
   function fillDemo(role: 'owner' | 'cashier') {
     if (role === 'owner') {
       setEmail('owner@alnoormart.com');
-      setPassword('password');
+      setPassword('password123');
     } else {
       setEmail('cashier@alnoormart.com');
-      setPassword('password');
+      setPassword('password123');
     }
   }
 

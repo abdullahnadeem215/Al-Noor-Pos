@@ -139,7 +139,7 @@ export const mockDashboardData: DashboardData = {
   today_expenses: 680,
   total_outstanding_debt: 71200,
   low_stock_products: mockProducts.filter(
-    (p) => p.stock_quantity <= p.low_stock_threshold
+    (p) => (p.stock_quantity ?? p.current_stock ?? 0) <= (p.low_stock_threshold ?? p.minimum_stock ?? 5)
   ),
   top_selling_products: [
     { product_id: 1, name: 'Refined White Sugar', quantity_sold: 35000, revenue: 6300 },

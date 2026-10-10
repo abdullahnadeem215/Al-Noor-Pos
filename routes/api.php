@@ -101,5 +101,8 @@ Route::prefix('v1')->group(function () {
         // Business Settings API
         Route::get('settings', [SettingController::class, 'index']);
         Route::put('settings', [SettingController::class, 'update']);
+
+        // Dev Read-Only Database Explorer API
+        Route::get('dev/db-explorer/{table}', [\App\Http\Controllers\Api\V1\DevDatabaseExplorerController::class, 'inspectTable']);
     });
 });

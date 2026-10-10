@@ -12,6 +12,8 @@ class SaleItem extends Model
         'sale_id',
         'product_id',
         'product_name_snapshot',
+        'sku_snapshot',
+        'unit_snapshot',
         'selling_mode',
         'unit_base_price_snapshot',
         'quantity',

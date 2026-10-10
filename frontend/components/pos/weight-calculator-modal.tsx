@@ -48,7 +48,7 @@ export function WeightCalculatorModal({
 
   if (!product) return null;
 
-  const pricePerKg = product.base_selling_price;
+  const pricePerKg = product.base_selling_price || product.base_price || 0;
 
   // Calculate from grams input
   const gramsValue = parseFloat(grams) || 0;

@@ -22,9 +22,13 @@ class UpdateProductRequest extends FormRequest
             'sku' => ['sometimes', 'nullable', 'string', 'max:100', Rule::unique('products', 'sku')->ignore($productId)],
             'barcode' => ['sometimes', 'nullable', 'string', 'max:100', Rule::unique('products', 'barcode')->ignore($productId)],
             'description' => ['nullable', 'string'],
+            'selling_mode' => ['sometimes', 'string', 'in:weight,quantity'],
             'base_unit' => ['nullable', 'string', 'max:50'],
             'base_price' => ['sometimes', 'numeric', 'min:0'],
             'purchase_price' => ['sometimes', 'numeric', 'min:0'],
+            'wholesale_price' => ['sometimes', 'numeric', 'min:0'],
+            'current_stock' => ['nullable', 'numeric', 'min:0'],
+            'opening_stock' => ['nullable', 'numeric', 'min:0'],
             'minimum_stock' => ['sometimes', 'numeric', 'min:0'],
             'status' => ['sometimes', 'string', 'in:active,inactive'],
         ];

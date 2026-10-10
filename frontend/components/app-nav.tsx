@@ -36,12 +36,10 @@ import {
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { href: '/pos', label: 'POS Billing', icon: ShoppingCart },
-  { href: '/products', label: 'Products & Inventory', icon: Package },
-  { href: '/customers', label: 'Customer Khata', icon: Users },
-  { href: '/expenses', label: 'Expenses', icon: Receipt },
-  { href: '/closing', label: 'Shift Closing', icon: LockKeyhole },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/pos', label: 'Khaata Invoice', icon: ShoppingCart },
+  { href: '/customers', label: 'Customers & Ledger', icon: Users },
+  { href: '/products', label: 'Products', icon: Package },
 ];
 
 export function AppNav() {

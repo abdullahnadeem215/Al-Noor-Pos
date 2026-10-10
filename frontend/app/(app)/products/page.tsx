@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import {
   Plus,
@@ -12,11 +11,13 @@ import {
   History,
   Loader2,
   Tag,
-  Layers,
+  Printer,
+  Download,
 } from 'lucide-react';
 import { fetchProducts, fetchCategories, createProduct, updateProduct, createCategory, fetchInventoryMovements } from '@/lib/data-service';
 import type { Product, Category, SellingMode, InventoryMovement } from '@/lib/types';
-import { formatPKR, formatGrams, formatStockDisplay, getStockStatus, formatDate, EXPENSE_CATEGORY_LABELS } from '@/lib/format';
+import { formatPKR, formatGrams, formatStockDisplay, getStockStatus, formatDate } from '@/lib/format';
+import { printHtmlDocument } from '@/lib/pdf-printer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,12 +47,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 export default function ProductsPage() {
@@ -72,14 +67,14 @@ export default function ProductsPage() {
 
   async function loadData() {
     try {
-      const [prods, cats] = await Promise.all([
+      const [res, cats] = await Promise.all([
         fetchProducts(),
         fetchCategories(),
       ]);
-      setProducts(prods);
-      setCategories(cats);
+      setProducts(res.data || []);
+      setCategories(cats || []);
     } catch {
-      toast.error('Failed to load data');
+      toast.error('Failed to load products');
     } finally {
       setLoading(false);
     }
@@ -146,24 +141,81 @@ export default function ProductsPage() {
     }
   }
 
-  const categoryName = (id: number) => categories.find((c) => c.id === id)?.name || 'Unknown';
+  function handlePrintPriceList() {
+    const rowsHtml = filtered.map((p) => `
+      <tr>
+        <td style="font-weight: bold;">${p.name}</td>
+        <td style="font-family: monospace;">${p.sku}</td>
+        <td style="text-transform: uppercase;">${p.base_unit || p.stock_unit || (p.selling_mode === 'weight' ? 'KG' : 'Piece')}</td>
+        <td style="text-align: right;">Rs. ${formatPKR(p.purchase_price || 0)}</td>
+        <td style="text-align: right; color: #b45309;">Rs. ${formatPKR(p.wholesale_price || 0)}</td>
+        <td style="text-align: right; font-weight: bold; color: #059669;">Rs. ${formatPKR(p.base_price || 0)}</td>
+        <td style="text-align: right;">${formatStockDisplay(p)}</td>
+        <td style="text-transform: capitalize;">${p.status || 'active'}</td>
+      </tr>
+    `).join('');
+
+    const bodyHtml = `
+      <div class="header">
+        <h1>AL-NOOR GROCERY</h1>
+        <p>Master Product Catalog & Price List</p>
+        <p>Generated on ${new Date().toLocaleDateString('en-PK')}</p>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Product Name</th>
+            <th>SKU</th>
+            <th>Unit</th>
+            <th style="text-align: right;">Purchase</th>
+            <th style="text-align: right;">Wholesale</th>
+            <th style="text-align: right;">Selling</th>
+            <th style="text-align: right;">Stock</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>
+      <div class="footer">
+        <p>Permanent Business Record — Al-Noor Grocery Management System</p>
+      </div>
+    `;
+
+    printHtmlDocument('Product_Price_List', bodyHtml);
+  }
+
+  function handleDownloadPriceList() {
+    handlePrintPriceList();
+  }
+
+  const categoryName = (id?: number) => categories.find((c) => c.id === id)?.name || 'General';
 
   return (
-    <div className="p-4 lg:p-6 max-w-7xl mx-auto">
+    <div className="p-4 lg:p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Products & Inventory</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Product Database & Price List</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Manage product catalog, stock levels, and categories
+            Master source for product names, SKUs, units, prices, and stock
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setCategoryModalOpen(true)}>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={handlePrintPriceList}>
+            <Printer className="w-4 h-4 mr-2" />
+            Print Price List
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleDownloadPriceList}>
+            <Download className="w-4 h-4 mr-2" />
+            Download Price List
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setCategoryModalOpen(true)}>
             <Tag className="w-4 h-4 mr-2" />
             Categories
           </Button>
-          <Button onClick={() => { setEditingProduct(null); setProductModalOpen(true); }}>
+          <Button size="sm" onClick={() => { setEditingProduct(null); setProductModalOpen(true); }}>
             <Plus className="w-4 h-4 mr-2" />
             Add Product
           </Button>
@@ -171,7 +223,7 @@ export default function ProductsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-4">
+      <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -225,13 +277,14 @@ export default function ProductsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>SKU / Barcode</TableHead>
+                <TableHead>Product Name</TableHead>
+                <TableHead>SKU</TableHead>
                 <TableHead>Category</TableHead>
-                <TableHead>Mode</TableHead>
-                <TableHead className="text-right">Cost</TableHead>
-                <TableHead className="text-right">Sell Price</TableHead>
-                <TableHead>Stock</TableHead>
+                <TableHead>Unit</TableHead>
+                <TableHead className="text-right">Purchase Price</TableHead>
+                <TableHead className="text-right">Wholesale Price</TableHead>
+                <TableHead className="text-right">Selling Price</TableHead>
+                <TableHead className="text-right">Stock</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -239,40 +292,37 @@ export default function ProductsPage() {
             <TableBody>
               {filtered.map((product) => {
                 const stock = getStockStatus(product);
+                const unitStr = product.base_unit || product.stock_unit || (product.selling_mode === 'weight' ? 'KG' : 'Piece');
                 return (
                   <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      <div>{product.sku}</div>
-                      <div className="text-[10px]">{product.barcode}</div>
-                    </TableCell>
+                    <TableCell className="font-semibold text-foreground">{product.name}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground font-mono">{product.sku}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-xs">
                         {categoryName(product.category_id)}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="text-xs">
-                        {product.selling_mode === 'weight' ? (
-                          <><Scale className="w-3 h-3 mr-1" /> Weight</>
-                        ) : (
-                          <><Package className="w-3 h-3 mr-1" /> Qty</>
-                        )}
+                      <Badge variant="secondary" className="text-xs uppercase">
+                        {unitStr}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">Rs. {formatPKR(product.unit_cost_price)}</TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">
-                      Rs. {formatPKR(product.base_selling_price)}
-                      <span className="text-[10px] text-muted-foreground">
-                        {product.selling_mode === 'weight' ? '/kg' : '/pc'}
-                      </span>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">
+                      Rs. {formatPKR(product.purchase_price || 0)}
                     </TableCell>
-                    <TableCell className="tabular-nums text-sm">{formatStockDisplay(product)}</TableCell>
+                    <TableCell className="text-right tabular-nums font-medium text-amber-700 dark:text-amber-400">
+                      Rs. {formatPKR(product.wholesale_price || 0)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-bold text-emerald-600 dark:text-emerald-400">
+                      Rs. {formatPKR(product.base_price || 0)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">
+                      {formatStockDisplay(product)}
+                    </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <div className={cn('w-2 h-2 rounded-full', stock.color)} />
-                        <span className="text-xs">{stock.label}</span>
-                      </div>
+                      <Badge variant={product.status === 'active' ? 'default' : 'secondary'} className="text-xs capitalize">
+                        {product.status}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -281,7 +331,7 @@ export default function ProductsPage() {
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => handleViewHistory(product)}
-                          title="Inventory History"
+                          title="Stock Movement History"
                         >
                           <History className="w-4 h-4" />
                         </Button>
@@ -305,12 +355,12 @@ export default function ProductsPage() {
         {!loading && filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Package className="w-12 h-12 mb-3 opacity-40" />
-            <p>No products match your filters</p>
+            <p>No products match your search/filters</p>
           </div>
         )}
       </div>
 
-      {/* Product Add/Edit Modal */}
+      {/* Product Form Modal */}
       <ProductFormModal
         open={productModalOpen}
         onClose={() => { setProductModalOpen(false); setEditingProduct(null); }}
@@ -333,10 +383,10 @@ export default function ProductsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="w-5 h-5 text-primary" />
-              Inventory Audit History
+              Stock Movement History
             </DialogTitle>
             <DialogDescription>
-              {historyProduct?.name} — Stock movement log (immutable)
+              {historyProduct?.name} — Immutable inventory audit trail
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[400px]">
@@ -346,7 +396,7 @@ export default function ProductsPage() {
               </div>
             ) : movements.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">
-                No inventory movements recorded
+                No inventory movements recorded yet
               </div>
             ) : (
               <Table>
@@ -355,8 +405,8 @@ export default function ProductsPage() {
                     <TableHead>Date</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead className="text-right">Quantity</TableHead>
-                    <TableHead>Reference</TableHead>
-                    <TableHead>User</TableHead>
+                    <TableHead>Stock After</TableHead>
+                    <TableHead>Notes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -364,28 +414,18 @@ export default function ProductsPage() {
                     <TableRow key={m.id}>
                       <TableCell className="text-xs">{formatDate(m.created_at)}</TableCell>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            'text-xs capitalize',
-                            m.type === 'sale' && 'border-orange-500/30 text-orange-600',
-                            m.type === 'purchase' && 'border-blue-500/30 text-blue-600',
-                            m.type === 'opening' && 'border-muted-foreground/30',
-                            m.type === 'adjustment' && 'border-amber-500/30 text-amber-600',
-                            m.type === 'return' && 'border-emerald-500/30 text-emerald-600'
-                          )}
-                        >
-                          {m.type}
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {m.movement_type}
                         </Badge>
                       </TableCell>
                       <TableCell className={cn(
                         'text-right tabular-nums font-medium',
-                        m.quantity < 0 ? 'text-destructive' : 'text-success'
+                        (m.quantity_or_grams ?? m.quantity ?? 0) < 0 ? 'text-rose-600' : 'text-emerald-600'
                       )}>
-                        {m.quantity > 0 ? '+' : ''}{historyProduct?.selling_mode === 'weight' ? formatGrams(Math.abs(m.quantity)) : Math.abs(m.quantity)}
+                        {(m.quantity_or_grams ?? m.quantity ?? 0) > 0 ? '+' : ''}{(m.quantity_or_grams ?? m.quantity ?? 0)}
                       </TableCell>
-                      <TableCell className="text-xs">{m.reference}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{m.user || '—'}</TableCell>
+                      <TableCell className="text-xs tabular-nums">{m.stock_after}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{m.notes || '—'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -417,10 +457,12 @@ function ProductFormModal({
   const [barcode, setBarcode] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [sellingMode, setSellingMode] = useState<SellingMode>('quantity');
-  const [unitCost, setUnitCost] = useState('');
-  const [sellPrice, setSellPrice] = useState('');
+  const [unit, setUnit] = useState('KG');
+  const [purchasePrice, setPurchasePrice] = useState('');
+  const [wholesalePrice, setWholesalePrice] = useState('');
+  const [basePrice, setBasePrice] = useState('');
   const [stockQty, setStockQty] = useState('');
-  const [lowStock, setLowStock] = useState('');
+  const [minimumStock, setMinimumStock] = useState('5');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -429,43 +471,53 @@ function ProductFormModal({
         setName(product.name);
         setSku(product.sku);
         setBarcode(product.barcode || '');
-        setCategoryId(String(product.category_id));
-        setSellingMode(product.selling_mode);
-        setUnitCost(String(product.unit_cost_price));
-        setSellPrice(String(product.base_selling_price));
-        setStockQty(String(product.stock_quantity));
-        setLowStock(String(product.low_stock_threshold));
+        setCategoryId(String(product.category_id || ''));
+        setSellingMode(product.selling_mode || 'quantity');
+        setUnit(product.base_unit || (product.selling_mode === 'weight' ? 'KG' : 'Piece'));
+        setPurchasePrice(String(product.purchase_price || '0'));
+        setWholesalePrice(String(product.wholesale_price || '0'));
+        setBasePrice(String(product.base_price || '0'));
+        setStockQty(String(product.current_stock || '0'));
+        setMinimumStock(String(product.minimum_stock || '5'));
       } else {
         setName('');
-        setSku('');
+        setSku('PRD-' + Math.random().toString(36).substring(2, 7).toUpperCase());
         setBarcode('');
         setCategoryId(categories[0] ? String(categories[0].id) : '');
-        setSellingMode('quantity');
-        setUnitCost('');
-        setSellPrice('');
-        setStockQty('');
-        setLowStock('10');
+        setSellingMode('weight');
+        setUnit('KG');
+        setPurchasePrice('170');
+        setWholesalePrice('180');
+        setBasePrice('190');
+        setStockQty('100');
+        setMinimumStock('5');
       }
     }
   }, [open, product, categories]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name || !sku || !categoryId || !sellPrice) {
-      toast.error('Please fill in all required fields');
+    if (!name || !sku || !basePrice) {
+      toast.error('Please fill in required product details');
       return;
     }
     setSaving(true);
+    const stockNum = parseFloat(stockQty) || 0;
     onSave({
       name,
       sku,
       barcode: barcode || undefined,
-      category_id: parseInt(categoryId),
+      category_id: categoryId ? parseInt(categoryId) : undefined,
       selling_mode: sellingMode,
-      unit_cost_price: parseFloat(unitCost) || 0,
-      base_selling_price: parseFloat(sellPrice) || 0,
-      stock_quantity: parseFloat(stockQty) || 0,
-      low_stock_threshold: parseFloat(lowStock) || 10,
+      base_unit: unit,
+      purchase_price: parseFloat(purchasePrice) || 0,
+      wholesale_price: parseFloat(wholesalePrice) || 0,
+      base_price: parseFloat(basePrice) || 0,
+      current_stock: stockNum,
+      opening_stock: stockNum,
+      opening_stock_kg: sellingMode === 'weight' ? stockNum : undefined,
+      minimum_stock: parseFloat(minimumStock) || 0,
+      status: 'active',
     });
     setSaving(false);
   }
@@ -476,25 +528,25 @@ function ProductFormModal({
         <DialogHeader>
           <DialogTitle>{product ? 'Edit Product' : 'Add New Product'}</DialogTitle>
           <DialogDescription>
-            {product ? `Editing: ${product.name}` : 'Fill in the product details below'}
+            {product ? `Editing: ${product.name}` : 'Fill in master product details'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5 col-span-2">
               <Label>Product Name *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Refined White Sugar" />
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sugar / Rice / Ghee" />
             </div>
             <div className="space-y-1.5">
               <Label>SKU *</Label>
-              <Input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="SGR-001" />
+              <Input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="PRD-SUGAR" />
             </div>
             <div className="space-y-1.5">
-              <Label>Barcode</Label>
-              <Input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="8901234500011" />
+              <Label>Unit (e.g. KG, Piece, Box)</Label>
+              <Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="KG" />
             </div>
             <div className="space-y-1.5">
-              <Label>Category *</Label>
+              <Label>Category</Label>
               <Select value={categoryId} onValueChange={setCategoryId}>
                 <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
@@ -505,40 +557,41 @@ function ProductFormModal({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Selling Mode *</Label>
+              <Label>Selling Mode</Label>
               <Select value={sellingMode} onValueChange={(v) => setSellingMode(v as SellingMode)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="quantity">Quantity (Units)</SelectItem>
                   <SelectItem value="weight">Weight (Kg/Grams)</SelectItem>
+                  <SelectItem value="quantity">Quantity (Units)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Unit Cost Price (Rs.)</Label>
-              <Input type="number" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} placeholder="165" />
+              <Label>Purchase Price (Rs.)</Label>
+              <Input type="number" step="0.01" value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} placeholder="170" />
             </div>
             <div className="space-y-1.5">
-              <Label>Base Selling Price (Rs.) {sellingMode === 'weight' && '/ kg'}</Label>
-              <Input type="number" value={sellPrice} onChange={(e) => setSellPrice(e.target.value)} placeholder="180" />
+              <Label>Wholesale Price (Rs.)</Label>
+              <Input type="number" step="0.01" value={wholesalePrice} onChange={(e) => setWholesalePrice(e.target.value)} placeholder="180" />
+            </div>
+            <div className="space-y-1.5 col-span-2">
+              <Label>Selling Price / Default Retail Price (Rs.) *</Label>
+              <Input type="number" step="0.01" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} placeholder="190" />
             </div>
             <div className="space-y-1.5">
-              <Label>
-                {sellingMode === 'weight' ? 'Opening Stock (grams)' : 'Opening Stock (units)'}
-              </Label>
-              <Input type="number" value={stockQty} onChange={(e) => setStockQty(e.target.value)} placeholder="25000" disabled={!!product} />
-              {product && <p className="text-[10px] text-muted-foreground">Stock adjusted via sales/purchases</p>}
+              <Label>Current Stock</Label>
+              <Input type="number" step="0.001" value={stockQty} onChange={(e) => setStockQty(e.target.value)} placeholder="100" />
             </div>
             <div className="space-y-1.5">
-              <Label>Low Stock Alert Threshold</Label>
-              <Input type="number" value={lowStock} onChange={(e) => setLowStock(e.target.value)} placeholder="5000" />
+              <Label>Minimum Stock Alert</Label>
+              <Input type="number" step="0.001" value={minimumStock} onChange={(e) => setMinimumStock(e.target.value)} placeholder="5" />
             </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={saving}>
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              {product ? 'Update Product' : 'Add Product'}
+              {product ? 'Update Product' : 'Save Product'}
             </Button>
           </DialogFooter>
         </form>
@@ -579,47 +632,30 @@ function CategoryModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Tag className="w-5 h-5 text-primary" />
-            Manage Categories
+            Product Categories
           </DialogTitle>
-          <DialogDescription>Create and view product categories</DialogDescription>
+          <DialogDescription>Create and view categories</DialogDescription>
         </DialogHeader>
 
-        {/* Existing Categories */}
         <div className="space-y-1.5 max-h-[200px] overflow-auto">
           {categories.map((c) => (
             <div key={c.id} className="flex items-center justify-between p-2 rounded-md bg-muted/30">
-              <div>
-                <span className="text-sm font-medium">{c.name}</span>
-                {c.description && <p className="text-xs text-muted-foreground">{c.description}</p>}
-              </div>
-              <Badge variant="secondary" className="text-xs">{c.product_count || 0} items</Badge>
+              <span className="text-sm font-medium">{c.name}</span>
             </div>
           ))}
         </div>
 
-        <Separator />
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-3 pt-2">
           <div className="space-y-1.5">
-            <Label>Category Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Dairy Products" />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Description (optional)</Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description..." className="min-h-[60px]" />
+            <Label>New Category Name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Grocery" />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit">
-              <Plus className="w-4 h-4 mr-1" />
-              Create Category
-            </Button>
+            <Button type="submit">Create Category</Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
   );
-}
-
-function Separator() {
-  return <div className="h-px bg-border w-full" />;
 }

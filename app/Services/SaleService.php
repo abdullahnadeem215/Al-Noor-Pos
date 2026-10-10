@@ -47,6 +47,10 @@ class SaleService
                 );
             }
 
+            $unitBasePrice = isset($itemData['unit_price']) && (float) $itemData['unit_price'] > 0
+                ? (float) $itemData['unit_price']
+                : (float) $product->base_price;
+
             $itemSubtotal = 0.0;
             $quantity = null;
             $weightGrams = null;
@@ -55,7 +59,7 @@ class SaleService
                 if (isset($itemData['amount']) && $itemData['amount'] > 0) {
                     // Sale by monetary amount (e.g., PKR 100 ki sugar @ PKR 180/kg => 555.556g)
                     $calc = $this->weightService->calculateWeightByAmount(
-                        (float) $product->base_price,
+                        $unitBasePrice,
                         (float) $itemData['amount']
                     );
                     $weightGrams = $calc['weight_grams'];
@@ -65,7 +69,7 @@ class SaleService
                     $unit = $itemData['weight_unit'] ?? 'gram';
                     $weightGrams = $this->weightService->normalizeToGrams($rawWeight, $unit);
                     $itemSubtotal = $this->weightService->calculatePriceByWeight(
-                        (float) $product->base_price,
+                        $unitBasePrice,
                         $weightGrams
                     );
                 } else {
@@ -82,7 +86,7 @@ class SaleService
                 }
                 $quantity = (float) $itemData['quantity'];
                 $itemSubtotal = $this->weightService->calculateQuantityPrice(
-                    (float) $product->base_price,
+                    $unitBasePrice,
                     $quantity
                 );
             }
@@ -91,8 +95,9 @@ class SaleService
                 'product_id' => $product->id,
                 'product_name' => $product->name,
                 'sku' => $product->sku,
+                'unit' => $product->base_unit ?? $product->stock_unit,
                 'selling_mode' => $product->selling_mode->value,
-                'unit_base_price' => (float) $product->base_price,
+                'unit_base_price' => $unitBasePrice,
                 'quantity' => $quantity,
                 'weight_grams' => $weightGrams,
                 'subtotal' => $itemSubtotal,
@@ -167,6 +172,8 @@ class SaleService
                     'sale_id' => $sale->id,
                     'product_id' => $item['product_id'],
                     'product_name_snapshot' => $item['product_name'],
+                    'sku_snapshot' => $item['sku'],
+                    'unit_snapshot' => $item['unit'],
                     'selling_mode' => $item['selling_mode'],
                     'unit_base_price_snapshot' => $item['unit_base_price'],
                     'quantity' => $item['quantity'],
@@ -240,6 +247,6 @@ class SaleService
         $dateStr = date('Ymd');
         $countToday = Sale::whereDate('created_at', now()->toDateString())->count() + 1;
 
-        return sprintf('INV-%s-%04d', $dateStr, $countToday);
+        return sprintf('KH-%s-%04d', $dateStr, $countToday);
     }
 }

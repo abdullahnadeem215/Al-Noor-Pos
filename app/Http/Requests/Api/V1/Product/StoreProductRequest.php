@@ -23,6 +23,7 @@ class StoreProductRequest extends FormRequest
             'base_unit' => ['nullable', 'string', 'max:50'],
             'base_price' => ['required', 'numeric', 'min:0'],
             'purchase_price' => ['nullable', 'numeric', 'min:0'],
+            'wholesale_price' => ['nullable', 'numeric', 'min:0'],
             'opening_stock' => ['nullable', 'numeric', 'min:0'],
             'opening_stock_grams' => ['nullable', 'numeric', 'min:0'],
             'opening_stock_kg' => ['nullable', 'numeric', 'min:0'],

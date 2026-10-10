@@ -24,6 +24,7 @@ class Product extends Model
         'base_unit',
         'base_price',
         'purchase_price',
+        'wholesale_price',
         'minimum_stock',
         'current_stock',
         'status',
@@ -36,6 +37,7 @@ class Product extends Model
             'selling_mode' => SellingMode::class,
             'base_price' => 'decimal:2',
             'purchase_price' => 'decimal:2',
+            'wholesale_price' => 'decimal:2',
             'minimum_stock' => 'decimal:3',
             'current_stock' => 'decimal:3',
         ];

@@ -34,9 +34,22 @@ class CustomerController extends Controller
             $query->where('current_balance', '>', 0);
         }
 
-        $customers = $query->orderBy('name')->paginate($request->per_page ?? 20);
+        $perPage = (int) ($request->per_page ?? 100);
+        $paginated = $query->orderBy('name')->paginate($perPage);
 
-        return ApiResponse::success($customers, 'Customers list.');
+        // Calculate global store total outstanding balance across all customers
+        $totalOutstandingKhaata = round((float) (Customer::where('current_balance', '>', 0)->sum('current_balance') ?? 0.0), 2);
+
+        $response = [
+            'data' => $paginated->items(),
+            'total' => $paginated->total(),
+            'per_page' => $paginated->perPage(),
+            'current_page' => $paginated->currentPage(),
+            'last_page' => $paginated->lastPage(),
+            'total_outstanding_khaata' => $totalOutstandingKhaata,
+        ];
+
+        return ApiResponse::success($response, 'Customers list.');
     }
 
     public function store(StoreCustomerRequest $request): JsonResponse
