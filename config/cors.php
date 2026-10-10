@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => ['*', 'https://al-noor-pos.vercel.ap'],
 
     'allowed_origins_patterns' => [],
 
